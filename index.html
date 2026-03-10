@@ -7,210 +7,145 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/decomp.js/0.3.0/decomp.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             background: #1a1a2e;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
             min-height: 100vh;
             font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
-            overflow: hidden;
-            color: #fff;
+            overflow: hidden; color: #fff;
         }
         #game-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 800px;
-            padding: 10px 20px;
-            background: rgba(0,0,0,0.3);
-            border-radius: 12px 12px 0 0;
+            display: flex; align-items: center; justify-content: space-between;
+            width: 800px; padding: 10px 20px;
+            background: rgba(0,0,0,0.3); border-radius: 12px 12px 0 0;
         }
         .player-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 18px;
-            font-weight: bold;
-            padding: 8px 16px;
-            border-radius: 8px;
-            transition: all 0.3s;
+            display: flex; align-items: center; gap: 10px;
+            font-size: 18px; font-weight: bold; padding: 8px 16px;
+            border-radius: 8px; transition: all 0.3s;
         }
-        .player-info.active {
-            transform: scale(1.1);
-        }
-        #player1-info {
-            color: #ff6b6b;
-        }
-        #player1-info.active {
-            background: rgba(255, 107, 107, 0.2);
-            box-shadow: 0 0 15px rgba(255, 107, 107, 0.3);
-        }
-        #player2-info {
-            color: #4ecdc4;
-        }
-        #player2-info.active {
-            background: rgba(78, 205, 196, 0.2);
-            box-shadow: 0 0 15px rgba(78, 205, 196, 0.3);
-        }
-        #timer {
-            font-size: 32px;
-            font-weight: bold;
-            color: #ffd93d;
-            min-width: 60px;
-            text-align: center;
-        }
-        #timer.warning {
-            color: #ff6b6b;
-            animation: pulse 0.5s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
+        .player-info.active { transform: scale(1.1); }
+        #player1-info { color: #ff6b6b; }
+        #player1-info.active { background: rgba(255,107,107,0.2); box-shadow: 0 0 15px rgba(255,107,107,0.3); }
+        #player2-info { color: #4ecdc4; }
+        #player2-info.active { background: rgba(78,205,196,0.2); box-shadow: 0 0 15px rgba(78,205,196,0.3); }
+        #timer { font-size: 32px; font-weight: bold; color: #ffd93d; min-width: 60px; text-align: center; }
+        #timer.warning { color: #ff6b6b; animation: pulse 0.5s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
         #game-canvas {
-            border: 2px solid #333;
-            border-top: none;
-            display: block;
+            border: 2px solid #333; border-top: none; display: block;
             background: linear-gradient(180deg, #0f0f23 0%, #1a1a3e 50%, #16213e 100%);
         }
         #controls-bar {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-            width: 800px;
-            padding: 12px 20px;
-            background: rgba(0,0,0,0.3);
-            border-radius: 0 0 12px 12px;
+            display: flex; align-items: center; justify-content: center; gap: 15px;
+            width: 800px; padding: 12px 20px;
+            background: rgba(0,0,0,0.3); border-radius: 0 0 12px 12px;
         }
         .ctrl-btn {
-            background: rgba(255,255,255,0.1);
-            border: 2px solid rgba(255,255,255,0.2);
-            color: #fff;
-            padding: 8px 20px;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-family: inherit;
+            background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2);
+            color: #fff; padding: 8px 20px; border-radius: 8px; font-size: 16px;
+            cursor: pointer; transition: all 0.2s; font-family: inherit;
         }
-        .ctrl-btn:hover {
-            background: rgba(255,255,255,0.2);
-            border-color: rgba(255,255,255,0.4);
-        }
-        .ctrl-btn:active {
-            transform: scale(0.95);
-        }
+        .ctrl-btn:hover { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.4); }
+        .ctrl-btn:active { transform: scale(0.95); }
         #drop-btn {
-            background: rgba(255, 217, 61, 0.2);
-            border-color: #ffd93d;
-            color: #ffd93d;
-            font-size: 18px;
-            font-weight: bold;
-            padding: 8px 30px;
+            background: rgba(255,217,61,0.2); border-color: #ffd93d; color: #ffd93d;
+            font-size: 18px; font-weight: bold; padding: 8px 30px;
         }
-        #drop-btn:hover {
-            background: rgba(255, 217, 61, 0.3);
-        }
-        .key-hint {
-            font-size: 11px;
-            opacity: 0.5;
-            display: block;
-        }
-        #start-screen, #result-screen {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.85);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+        .key-hint { font-size: 11px; opacity: 0.5; display: block; }
+
+        /* Overlay screens */
+        .overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.9);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
             z-index: 100;
         }
-        #start-screen h1 {
-            font-size: 48px;
-            margin-bottom: 10px;
+        .overlay h1 {
+            font-size: 48px; margin-bottom: 10px;
             background: linear-gradient(135deg, #ff6b6b, #ffd93d, #4ecdc4);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        #start-screen p {
-            font-size: 18px;
-            color: #aaa;
-            margin-bottom: 30px;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
         .start-btn {
-            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-            border: none;
-            color: #fff;
-            padding: 15px 50px;
-            border-radius: 30px;
-            font-size: 22px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: transform 0.2s;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24); border: none;
+            color: #fff; padding: 15px 50px; border-radius: 30px;
+            font-size: 22px; font-weight: bold; cursor: pointer;
+            transition: transform 0.2s; font-family: inherit;
+        }
+        .start-btn:hover { transform: scale(1.05); }
+        .start-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .hidden { display: none !important; }
+
+        /* Image upload UI */
+        #upload-screen { gap: 20px; }
+        #upload-screen h1 { margin-bottom: 0; }
+        .upload-grid {
+            display: flex; gap: 15px; flex-wrap: wrap; justify-content: center;
+            margin: 20px 0; max-width: 700px;
+        }
+        .upload-slot {
+            width: 120px; height: 150px; border: 2px dashed rgba(255,255,255,0.3);
+            border-radius: 12px; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; cursor: pointer;
+            transition: all 0.3s; overflow: hidden; position: relative;
+            background: rgba(255,255,255,0.05);
+        }
+        .upload-slot:hover { border-color: #ffd93d; background: rgba(255,217,61,0.1); }
+        .upload-slot.loaded { border-color: #4ecdc4; border-style: solid; }
+        .upload-slot img {
+            width: 100%; height: 100%; object-fit: contain;
+            position: absolute; top: 0; left: 0;
+        }
+        .upload-slot .label {
+            font-size: 12px; color: #aaa; z-index: 1;
+        }
+        .upload-slot .plus {
+            font-size: 32px; color: rgba(255,255,255,0.3);
+        }
+        .upload-slot input { display: none; }
+        .char-name-input {
+            background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2);
+            color: #fff; text-align: center; width: 100%; padding: 2px;
+            font-size: 11px; position: absolute; bottom: 0; z-index: 2;
             font-family: inherit;
-        }
-        .start-btn:hover {
-            transform: scale(1.05);
-        }
-        #result-screen h2 {
-            font-size: 42px;
-            margin-bottom: 20px;
-        }
-        #result-screen .start-btn {
-            margin-top: 20px;
-        }
-        .hidden {
-            display: none !important;
-        }
-        #char-preview {
-            position: absolute;
-            top: 80px;
-            right: 20px;
-            background: rgba(0,0,0,0.5);
-            padding: 10px;
-            border-radius: 8px;
-            text-align: center;
-            font-size: 14px;
         }
     </style>
 </head>
 <body>
 
-<div id="start-screen">
+<!-- Image Upload Screen -->
+<div id="upload-screen" class="overlay">
     <h1>8番街タワーバトル</h1>
-    <p>仲間を積み上げろ！落としたら負け！</p>
-    <div style="margin-bottom: 30px; color: #aaa; font-size: 14px; text-align: center; line-height: 2;">
-        <div><b style="color:#ffd93d">操作方法</b></div>
-        <div>← → : 移動　　↑ ↓ : 回転</div>
-        <div>スペース / クリック : 落とす</div>
-    </div>
-    <button class="start-btn" onclick="startGame()">ゲームスタート</button>
+    <p style="color:#aaa; margin: 5px 0 0 0;">仲間を積み上げろ！落としたら負け！</p>
+    <p style="color:#ffd93d; font-size: 14px; margin-top: 15px;">キャラクター画像を5枚アップロードしてください</p>
+    <p style="color:#888; font-size: 12px;">（黒背景は自動で透過されます）</p>
+    <div class="upload-grid" id="upload-grid"></div>
+    <p style="color:#aaa; font-size: 13px; text-align: center; line-height: 2; margin-bottom: 10px;">
+        <b style="color:#ffd93d">操作方法</b><br>
+        ← → : 移動　　↑ ↓ : 回転<br>
+        スペース / クリック : 落とす
+    </p>
+    <button class="start-btn" id="start-btn" disabled onclick="startGame()">
+        画像をアップロードしてね
+    </button>
 </div>
 
-<div id="result-screen" class="hidden">
-    <h2 id="result-text"></h2>
+<!-- Result Screen -->
+<div id="result-screen" class="overlay hidden">
+    <h2 id="result-text" style="font-size:42px;"></h2>
     <p id="result-sub" style="color:#aaa; font-size: 18px;"></p>
-    <button class="start-btn" onclick="startGame()">もう一回</button>
+    <button class="start-btn" onclick="startGame()" style="margin-top:20px;">もう一回</button>
 </div>
 
+<!-- Game UI -->
 <div id="game-header">
     <div id="player1-info" class="player-info active">
-        <span>P1</span>
-        <span id="p1-score">0</span>勝
+        <span>P1</span> <span id="p1-score">0</span>勝
     </div>
     <div id="timer">10</div>
     <div id="player2-info" class="player-info">
-        <span>P2</span>
-        <span id="p2-score">0</span>勝
+        <span>P2</span> <span id="p2-score">0</span>勝
     </div>
 </div>
 <canvas id="game-canvas" width="800" height="600"></canvas>
@@ -229,7 +164,6 @@
 
 const { Engine, Render, Runner, Bodies, Body, Composite, Events, Vector, Vertices, Common } = Matter;
 
-// Set up decomp for concave polygon support
 if (typeof decomp !== 'undefined') {
     Common.setDecomp(decomp);
 }
@@ -241,12 +175,13 @@ const PLATFORM_Y = 540;
 const PLATFORM_W = 350;
 const PLATFORM_H = 20;
 const DROP_Y = 60;
-const FALL_THRESHOLD = 620;
+const FALL_THRESHOLD = 630;
 const TURN_TIME = 10;
-const RESTITUTION = 0.05;  // Low bounce
+const RESTITUTION = 0.05;
 const FRICTION = 0.8;
 const MOVE_STEP = 20;
-const ROTATION_STEP = Math.PI / 4; // 45 degrees
+const ROTATION_STEP = Math.PI / 4;
+const PIECE_MAX_H = 100; // max height of a piece in pixels
 
 // Game state
 let engine, render, runner;
@@ -261,300 +196,205 @@ let p2Score = 0;
 let dropCount = 0;
 let waitingForSettle = false;
 let settleTimeout = null;
-let allDroppedBodies = [];
-let lastDroppedByPlayer = {};
 let piecesOnPlatform = [];
 
-// Character definitions - 5 unique characters based on the photos
-const CHARACTERS = [
-    {
-        name: "ブレイカー",
-        color: "#ff6b6b",
-        // Breakdancer pose - L-shaped body
-        scale: 1.0,
-        vertices: [
-            // torso leaning back
-            { x: -20, y: -10 },
-            { x: 20, y: -10 },
-            { x: 25, y: 20 },
-            { x: 30, y: 50 },
-            // leg up
-            { x: 15, y: 55 },
-            { x: 5, y: 30 },
-            { x: -15, y: 25 },
-            { x: -30, y: 10 },
-            { x: -35, y: -5 },
-        ],
-        draw: function(ctx, body) {
-            drawCharacterBody(ctx, body, this);
-            // Draw details
-            const pos = body.position;
-            const angle = body.angle;
-            ctx.save();
-            ctx.translate(pos.x, pos.y);
-            ctx.rotate(angle);
-            // Cap
-            ctx.fillStyle = "#222";
-            ctx.fillRect(-18, -15, 20, 6);
-            // SAY text on shirt
-            ctx.fillStyle = "#fff";
-            ctx.font = "bold 10px sans-serif";
-            ctx.fillText("SAY", -8, 8);
-            // Shoe
-            ctx.fillStyle = "#fff";
-            ctx.beginPath();
-            ctx.ellipse(20, 52, 8, 5, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-        }
-    },
-    {
-        name: "スナック配り",
-        color: "#4ecdc4",
-        // Standing with box - wider body
-        scale: 1.0,
-        vertices: [
-            // head
-            { x: -8, y: -40 },
-            { x: 8, y: -40 },
-            // shoulders
-            { x: 18, y: -20 },
-            // box extends right
-            { x: 30, y: -5 },
-            { x: 30, y: 15 },
-            // legs
-            { x: 15, y: 45 },
-            { x: 8, y: 45 },
-            { x: 5, y: 20 },
-            { x: -5, y: 20 },
-            { x: -8, y: 45 },
-            { x: -15, y: 45 },
-            // left side
-            { x: -18, y: -20 },
-        ],
-        draw: function(ctx, body) {
-            drawCharacterBody(ctx, body, this);
-            const pos = body.position;
-            const angle = body.angle;
-            ctx.save();
-            ctx.translate(pos.x, pos.y);
-            ctx.rotate(angle);
-            // Glasses
-            ctx.strokeStyle = "#ffd93d";
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.arc(-5, -33, 4, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(5, -33, 4, 0, Math.PI * 2);
-            ctx.stroke();
-            // Box
-            ctx.fillStyle = "#c4a053";
-            ctx.fillRect(15, -5, 15, 18);
-            ctx.strokeStyle = "#8B6914";
-            ctx.lineWidth = 1;
-            ctx.strokeRect(15, -5, 15, 18);
-            // Snack inside box
-            ctx.fillStyle = "#ff6b35";
-            ctx.fillRect(18, 0, 8, 5);
-            ctx.restore();
-        }
-    },
-    {
-        name: "ゼンタイマン",
-        color: "#95a5a6",
-        // Standing figure in zentai - narrow and tall
-        scale: 1.0,
-        vertices: [
-            // hood/head
-            { x: -7, y: -45 },
-            { x: 7, y: -45 },
-            // shoulders
-            { x: 16, y: -25 },
-            // right side body
-            { x: 14, y: -10 },
-            { x: 16, y: 0 },
-            // hips with apron
-            { x: 13, y: 10 },
-            // legs
-            { x: 12, y: 45 },
-            { x: 5, y: 45 },
-            { x: 2, y: 15 },
-            { x: -2, y: 15 },
-            { x: -5, y: 45 },
-            { x: -12, y: 45 },
-            // left side
-            { x: -13, y: 10 },
-            { x: -16, y: 0 },
-            { x: -14, y: -10 },
-            { x: -16, y: -25 },
-        ],
-        draw: function(ctx, body) {
-            drawCharacterBody(ctx, body, this);
-            const pos = body.position;
-            const angle = body.angle;
-            ctx.save();
-            ctx.translate(pos.x, pos.y);
-            ctx.rotate(angle);
-            // Striped apron
-            for (let i = 0; i < 5; i++) {
-                ctx.fillStyle = i % 2 === 0 ? "#f1c40f" : "#222";
-                ctx.fillRect(-12 + i * 5, -5, 5, 18);
+// ============================================================
+// Image upload & processing
+// ============================================================
+const CHARACTER_COUNT = 5;
+const characterImages = []; // processed transparent canvas for each character
+const characterContours = []; // polygon vertices for physics
+const characterNames = ["キャラ1", "キャラ2", "キャラ3", "キャラ4", "キャラ5"];
+let loadedCount = 0;
+
+function initUploadUI() {
+    const grid = document.getElementById('upload-grid');
+    grid.innerHTML = '';
+    for (let i = 0; i < CHARACTER_COUNT; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'upload-slot';
+        slot.innerHTML = `
+            <span class="plus">+</span>
+            <span class="label">キャラ${i + 1}</span>
+            <input type="file" accept="image/*" data-index="${i}">
+            <input type="text" class="char-name-input" placeholder="名前" value="キャラ${i+1}" data-name-index="${i}" style="display:none;">
+        `;
+        const fileInput = slot.querySelector('input[type="file"]');
+        slot.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('click', (e) => e.stopPropagation());
+        fileInput.addEventListener('change', (e) => handleImageUpload(e, i, slot));
+        grid.appendChild(slot);
+    }
+}
+
+function handleImageUpload(event, index, slot) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+            // Process image: remove black background, extract contour
+            const result = processImage(img);
+            characterImages[index] = result.canvas;
+            characterContours[index] = result.vertices;
+
+            // Update UI
+            slot.classList.add('loaded');
+            // Remove plus and label
+            const plus = slot.querySelector('.plus');
+            const label = slot.querySelector('.label');
+            if (plus) plus.style.display = 'none';
+            if (label) label.style.display = 'none';
+
+            // Show preview
+            let preview = slot.querySelector('img');
+            if (!preview) {
+                preview = document.createElement('img');
+                slot.appendChild(preview);
             }
-            // Belt
-            ctx.fillStyle = "#111";
-            ctx.fillRect(-13, -6, 26, 3);
-            ctx.restore();
-        }
-    },
-    {
-        name: "ビッグフェイス",
-        color: "#e17055",
-        // Large face - big round/oval shape
-        scale: 1.0,
-        vertices: (function() {
-            const verts = [];
-            const segments = 10;
-            for (let i = 0; i < segments; i++) {
-                const angle = (i / segments) * Math.PI * 2;
-                verts.push({
-                    x: Math.cos(angle) * 38,
-                    y: Math.sin(angle) * 42
-                });
+            preview.src = result.canvas.toDataURL();
+
+            // Show name input
+            const nameInput = slot.querySelector('.char-name-input');
+            nameInput.style.display = 'block';
+            nameInput.addEventListener('click', (e) => e.stopPropagation());
+            nameInput.addEventListener('input', (e) => {
+                characterNames[index] = e.target.value || `キャラ${index + 1}`;
+            });
+
+            // Check if all loaded
+            loadedCount = characterImages.filter(Boolean).length;
+            const btn = document.getElementById('start-btn');
+            if (loadedCount >= CHARACTER_COUNT) {
+                btn.disabled = false;
+                btn.textContent = 'ゲームスタート';
+            } else {
+                btn.textContent = `あと${CHARACTER_COUNT - loadedCount}枚`;
             }
-            return verts;
-        })(),
-        draw: function(ctx, body) {
-            drawCharacterBody(ctx, body, this);
-            const pos = body.position;
-            const angle = body.angle;
-            ctx.save();
-            ctx.translate(pos.x, pos.y);
-            ctx.rotate(angle);
-            // Hair
-            ctx.fillStyle = "#2d3436";
-            ctx.beginPath();
-            ctx.ellipse(0, -30, 35, 15, 0, Math.PI, 0);
-            ctx.fill();
-            // Eyes
-            ctx.fillStyle = "#2d3436";
-            ctx.beginPath();
-            ctx.ellipse(-12, -8, 4, 5, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.ellipse(12, -8, 4, 5, 0, 0, Math.PI * 2);
-            ctx.fill();
-            // Big grin
-            ctx.strokeStyle = "#2d3436";
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(0, 8, 18, 0.1, Math.PI - 0.1);
-            ctx.stroke();
-            // Teeth
-            ctx.fillStyle = "#fff";
-            ctx.fillRect(-6, 10, 12, 7);
-            ctx.strokeStyle = "#2d3436";
-            ctx.lineWidth = 1;
-            ctx.strokeRect(-6, 10, 12, 7);
-            ctx.beginPath();
-            ctx.moveTo(0, 10);
-            ctx.lineTo(0, 17);
-            ctx.stroke();
-            ctx.restore();
-        }
-    },
-    {
-        name: "クールビューティー",
-        color: "#a29bfe",
-        // Head and shoulders - wider top, narrow bottom
-        scale: 1.0,
-        vertices: [
-            // top of head
-            { x: -15, y: -35 },
-            { x: 0, y: -38 },
-            { x: 15, y: -35 },
-            // side of head with hair
-            { x: 20, y: -20 },
-            { x: 18, y: -5 },
-            // shoulders wide
-            { x: 30, y: 5 },
-            { x: 32, y: 15 },
-            { x: 25, y: 30 },
-            // bottom
-            { x: 10, y: 35 },
-            { x: -10, y: 35 },
-            // left side
-            { x: -25, y: 30 },
-            { x: -32, y: 15 },
-            { x: -30, y: 5 },
-            { x: -18, y: -5 },
-            { x: -20, y: -20 },
-        ],
-        draw: function(ctx, body) {
-            drawCharacterBody(ctx, body, this);
-            const pos = body.position;
-            const angle = body.angle;
-            ctx.save();
-            ctx.translate(pos.x, pos.y);
-            ctx.rotate(angle);
-            // Long hair
-            ctx.fillStyle = "#2d3436";
-            ctx.beginPath();
-            ctx.moveTo(-15, -35);
-            ctx.quadraticCurveTo(-22, -20, -20, 0);
-            ctx.lineTo(-14, 0);
-            ctx.quadraticCurveTo(-16, -18, -10, -30);
-            ctx.closePath();
-            ctx.fill();
-            ctx.beginPath();
-            ctx.moveTo(15, -35);
-            ctx.quadraticCurveTo(22, -20, 20, 0);
-            ctx.lineTo(14, 0);
-            ctx.quadraticCurveTo(16, -18, 10, -30);
-            ctx.closePath();
-            ctx.fill();
-            // Face
-            ctx.fillStyle = "#2d3436";
-            // Eyes - serious look
-            ctx.beginPath();
-            ctx.ellipse(-7, -18, 3, 2.5, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.ellipse(7, -18, 3, 2.5, 0, 0, Math.PI * 2);
-            ctx.fill();
-            // Mouth - straight/serious
-            ctx.strokeStyle = "#2d3436";
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.moveTo(-5, -8);
-            ctx.lineTo(5, -8);
-            ctx.stroke();
-            ctx.restore();
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+// Process image: remove black background and extract outline polygon
+function processImage(img) {
+    // Scale image to fit within game piece size
+    const maxH = PIECE_MAX_H;
+    const scale = maxH / img.height;
+    const w = Math.round(img.width * scale);
+    const h = Math.round(img.height * scale);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+
+    // Draw original image
+    ctx.drawImage(img, 0, 0, w, h);
+
+    // Remove black background: make dark pixels transparent
+    const imageData = ctx.getImageData(0, 0, w, h);
+    const data = imageData.data;
+    const threshold = 35; // pixels darker than this become transparent
+
+    for (let i = 0; i < data.length; i += 4) {
+        const r = data[i], g = data[i + 1], b = data[i + 2];
+        const brightness = (r + g + b) / 3;
+        if (brightness < threshold) {
+            data[i + 3] = 0; // make transparent
+        } else if (brightness < threshold + 20) {
+            // Smooth edge transition
+            data[i + 3] = Math.round(((brightness - threshold) / 20) * 255);
         }
     }
-];
+    ctx.putImageData(imageData, 0, 0);
 
-// Helper function to draw character body shape (handles compound bodies)
-function drawCharacterBody(ctx, body, character) {
-    const parts = body.parts;
+    // Extract contour polygon from alpha channel
+    const vertices = extractContour(imageData, w, h);
 
-    ctx.fillStyle = character.color;
-    ctx.strokeStyle = "rgba(255,255,255,0.3)";
-    ctx.lineWidth = 1.5;
+    return { canvas, vertices };
+}
 
-    // For compound bodies, parts[0] is the parent, parts[1+] are the actual shapes
-    const startIdx = parts.length > 1 ? 1 : 0;
-    for (let p = startIdx; p < parts.length; p++) {
-        const vertices = parts[p].vertices;
-        ctx.beginPath();
-        ctx.moveTo(vertices[0].x, vertices[0].y);
-        for (let i = 1; i < vertices.length; i++) {
-            ctx.lineTo(vertices[i].x, vertices[i].y);
-        }
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
+// Extract a simplified contour polygon from image alpha
+function extractContour(imageData, w, h) {
+    const data = imageData.data;
+    const alphaThreshold = 30;
+
+    // Create binary mask
+    function isOpaque(x, y) {
+        if (x < 0 || x >= w || y < 0 || y >= h) return false;
+        return data[(y * w + x) * 4 + 3] > alphaThreshold;
     }
+
+    // Sample boundary points by scanning from multiple angles
+    const points = [];
+    const numAngles = 36; // every 10 degrees
+    const cx = w / 2;
+    const cy = h / 2;
+    const maxR = Math.sqrt(cx * cx + cy * cy);
+
+    for (let a = 0; a < numAngles; a++) {
+        const angle = (a / numAngles) * Math.PI * 2;
+        const dx = Math.cos(angle);
+        const dy = Math.sin(angle);
+
+        // Ray march from outside inward to find edge
+        let foundEdge = false;
+        for (let r = maxR; r >= 0; r -= 1) {
+            const x = Math.round(cx + dx * r);
+            const y = Math.round(cy + dy * r);
+            if (x >= 0 && x < w && y >= 0 && y < h && isOpaque(x, y)) {
+                points.push({ x: x - cx, y: y - cy });
+                foundEdge = true;
+                break;
+            }
+        }
+        // If no opaque pixel found on this ray, skip
+    }
+
+    if (points.length < 3) {
+        // Fallback: simple rectangle
+        const hw = w / 2, hh = h / 2;
+        return [
+            { x: -hw, y: -hh }, { x: hw, y: -hh },
+            { x: hw, y: hh }, { x: -hw, y: hh }
+        ];
+    }
+
+    // Simplify: remove points too close to neighbors
+    const simplified = [points[0]];
+    const minDist = 5;
+    for (let i = 1; i < points.length; i++) {
+        const prev = simplified[simplified.length - 1];
+        const dist = Math.sqrt((points[i].x - prev.x) ** 2 + (points[i].y - prev.y) ** 2);
+        if (dist > minDist) {
+            simplified.push(points[i]);
+        }
+    }
+
+    return simplified.length >= 3 ? simplified : points;
+}
+
+// ============================================================
+// Character draw function (using actual images)
+// ============================================================
+function drawCharacterImage(ctx, body, charIndex) {
+    const imgCanvas = characterImages[charIndex];
+    if (!imgCanvas) return;
+
+    const pos = body.position;
+    const angle = body.angle;
+    const iw = imgCanvas.width;
+    const ih = imgCanvas.height;
+
+    ctx.save();
+    ctx.translate(pos.x, pos.y);
+    ctx.rotate(angle);
+    ctx.drawImage(imgCanvas, -iw / 2, -ih / 2, iw, ih);
+    ctx.restore();
 }
 
 // ============================================================
@@ -573,33 +413,26 @@ function initGame() {
         Runner.stop(runner);
     }
 
-    engine = Engine.create({
-        gravity: { x: 0, y: 1.5 }
-    });
+    engine = Engine.create({ gravity: { x: 0, y: 1.5 } });
 
     const canvas = document.getElementById('game-canvas');
     render = Render.create({
         canvas: canvas,
         engine: engine,
         options: {
-            width: CANVAS_W,
-            height: CANVAS_H,
-            wireframes: false,
-            background: 'transparent',
-            pixelRatio: 1
+            width: CANVAS_W, height: CANVAS_H,
+            wireframes: false, background: 'transparent', pixelRatio: 1
         }
     });
 
-    // Create platform
+    // Platform
     const platform = Bodies.rectangle(CANVAS_W / 2, PLATFORM_Y, PLATFORM_W, PLATFORM_H, {
-        isStatic: true,
-        restitution: RESTITUTION,
-        friction: FRICTION,
+        isStatic: true, restitution: RESTITUTION, friction: FRICTION,
         render: { fillStyle: '#34495e', strokeStyle: '#2c3e50', lineWidth: 2 },
         label: 'platform'
     });
 
-    // Create walls (invisible, to keep things from going sideways forever)
+    // Walls
     const wallL = Bodies.rectangle(-10, CANVAS_H / 2, 20, CANVAS_H * 2, {
         isStatic: true, render: { visible: false }, label: 'wall'
     });
@@ -613,93 +446,86 @@ function initGame() {
     Runner.run(runner, engine);
     Render.run(render);
 
-    // Custom rendering on top of Matter.js
     Events.on(render, 'afterRender', customDraw);
-
-    // Check for fallen pieces
     Events.on(engine, 'afterUpdate', checkFallen);
 
-    allDroppedBodies = [];
-    lastDroppedByPlayer = {};
     piecesOnPlatform = [];
     dropCount = 0;
     waitingForSettle = false;
+    drawBackground.stars = null; // reset stars
 }
 
 // ============================================================
-// Custom draw - render characters on top of physics shapes
+// Custom rendering
 // ============================================================
 function customDraw() {
     const ctx = render.context;
-
-    // Draw background gradient with stars
     drawBackground(ctx);
-
-    // Draw platform with style
     drawPlatform(ctx);
 
-    // Draw all dropped bodies with character art
+    // Draw dropped pieces with actual images
     for (const item of piecesOnPlatform) {
-        const charDef = CHARACTERS[item.type];
-        if (charDef && charDef.draw) {
-            charDef.draw(ctx, item.body);
-            // Player color indicator ring
-            const pColor = item.player === 1 ? 'rgba(255,107,107,0.5)' : 'rgba(78,205,196,0.5)';
-            ctx.strokeStyle = pColor;
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(item.body.position.x, item.body.position.y, 5, 0, Math.PI * 2);
-            ctx.stroke();
-        }
+        drawCharacterImage(ctx, item.body, item.type);
+        // Player indicator
+        const pColor = item.player === 1 ? 'rgba(255,107,107,0.6)' : 'rgba(78,205,196,0.6)';
+        ctx.strokeStyle = pColor;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(item.body.position.x, item.body.position.y, 5, 0, Math.PI * 2);
+        ctx.stroke();
     }
 
-    // Draw current floating piece
+    // Draw floating piece
     if (currentPiece && !waitingForSettle) {
-        const charDef = CHARACTERS[currentPieceType];
-        if (charDef && charDef.draw) {
-            ctx.globalAlpha = 0.85;
-            charDef.draw(ctx, currentPiece);
-            ctx.globalAlpha = 1.0;
-        }
+        ctx.globalAlpha = 0.85;
+        drawCharacterImage(ctx, currentPiece, currentPieceType);
+        ctx.globalAlpha = 1.0;
 
-        // Drop guide line
+        // Drop guide
         ctx.setLineDash([5, 5]);
         ctx.strokeStyle = currentPlayer === 1 ? 'rgba(255,107,107,0.4)' : 'rgba(78,205,196,0.4)';
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(currentPiece.position.x, currentPiece.position.y + 20);
+        ctx.moveTo(currentPiece.position.x, currentPiece.position.y + 30);
         ctx.lineTo(currentPiece.position.x, PLATFORM_Y - 10);
         ctx.stroke();
         ctx.setLineDash([]);
+
+        // Name label
+        const name = characterNames[currentPieceType] || `キャラ${currentPieceType + 1}`;
+        ctx.font = 'bold 13px "Hiragino Sans", "Meiryo", sans-serif';
+        const tw = ctx.measureText(name).width;
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(currentPiece.position.x - tw / 2 - 8, currentPiece.position.y - 70, tw + 16, 22);
+        ctx.fillStyle = currentPlayer === 1 ? '#ff6b6b' : '#4ecdc4';
+        ctx.textAlign = 'center';
+        ctx.fillText(name, currentPiece.position.x, currentPiece.position.y - 54);
+        ctx.textAlign = 'start';
     }
 
-    // Waiting indicator during settle
+    // Settle indicator
     if (waitingForSettle) {
-        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
         ctx.fillRect(CANVAS_W / 2 - 60, 25, 120, 30);
         ctx.fillStyle = '#ffd93d';
         ctx.font = 'bold 16px "Hiragino Sans", "Meiryo", sans-serif';
         ctx.textAlign = 'center';
-        const dots = '.'.repeat(Math.floor(Date.now() / 500) % 4);
-        ctx.fillText('判定中' + dots, CANVAS_W / 2, 45);
+        ctx.fillText('判定中' + '.'.repeat(Math.floor(Date.now() / 500) % 4), CANVAS_W / 2, 45);
         ctx.textAlign = 'start';
     }
 
-    // Character name display
-    if (currentPiece && !waitingForSettle) {
-        const charDef = CHARACTERS[currentPieceType];
-        ctx.fillStyle = 'rgba(0,0,0,0.6)';
-        ctx.fillRect(currentPiece.position.x - 40, currentPiece.position.y - 65, 80, 20);
-        ctx.fillStyle = charDef.color;
-        ctx.font = 'bold 12px "Hiragino Sans", "Meiryo", sans-serif';
+    // Turn indicator
+    if (gameActive && !waitingForSettle) {
+        const color = currentPlayer === 1 ? '#ff6b6b' : '#4ecdc4';
+        ctx.fillStyle = color;
+        ctx.font = 'bold 14px "Hiragino Sans", "Meiryo", sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(charDef.name, currentPiece.position.x, currentPiece.position.y - 50);
+        ctx.fillText(`P${currentPlayer} のターン`, CANVAS_W / 2, 20);
         ctx.textAlign = 'start';
     }
 }
 
 function drawBackground(ctx) {
-    // Stars
     if (!drawBackground.stars) {
         drawBackground.stars = [];
         for (let i = 0; i < 50; i++) {
@@ -717,8 +543,6 @@ function drawBackground(ctx) {
         ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
         ctx.fill();
     }
-
-    // Ground below platform
     ctx.fillStyle = '#0d1117';
     ctx.fillRect(0, PLATFORM_Y + PLATFORM_H / 2, CANVAS_W, CANVAS_H);
 }
@@ -726,41 +550,39 @@ function drawBackground(ctx) {
 function drawPlatform(ctx) {
     const px = CANVAS_W / 2 - PLATFORM_W / 2;
     const py = PLATFORM_Y - PLATFORM_H / 2;
-
-    // Platform shadow
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.fillRect(px + 5, py + 5, PLATFORM_W, PLATFORM_H);
-
-    // Platform body
     const grad = ctx.createLinearGradient(px, py, px, py + PLATFORM_H);
     grad.addColorStop(0, '#4a6274');
     grad.addColorStop(1, '#2c3e50');
     ctx.fillStyle = grad;
     ctx.fillRect(px, py, PLATFORM_W, PLATFORM_H);
-
-    // Platform highlight
     ctx.fillStyle = 'rgba(255,255,255,0.1)';
     ctx.fillRect(px, py, PLATFORM_W, 3);
-
-    // Platform supports
     ctx.fillStyle = '#2c3e50';
     ctx.fillRect(px + 20, py + PLATFORM_H, 15, 30);
     ctx.fillRect(px + PLATFORM_W - 35, py + PLATFORM_H, 15, 30);
 }
 
 // ============================================================
-// Piece creation
+// Piece creation using image contour
 // ============================================================
 function createPiece(typeIndex) {
-    const charDef = CHARACTERS[typeIndex];
-    const verts = charDef.vertices.map(v => ({ x: v.x * charDef.scale, y: v.y * charDef.scale }));
+    const verts = characterContours[typeIndex];
+    if (!verts || verts.length < 3) {
+        return Bodies.rectangle(CANVAS_W / 2, DROP_Y, 50, 60, {
+            restitution: RESTITUTION, friction: FRICTION, frictionAir: 0.02,
+            density: 0.002, isStatic: true, render: { visible: false },
+            label: 'piece_' + typeIndex
+        });
+    }
 
-    // Ensure vertices are in correct order (convex hull)
-    const centroid = Vertices.centre(verts);
-    const body = Bodies.fromVertices(CANVAS_W / 2, DROP_Y, verts, {
+    const vertsCopy = verts.map(v => ({ x: v.x, y: v.y }));
+
+    const body = Bodies.fromVertices(CANVAS_W / 2, DROP_Y, vertsCopy, {
         restitution: RESTITUTION,
         friction: FRICTION,
-        frictionAir: 0.01,
+        frictionAir: 0.02,
         density: 0.002,
         isStatic: true,
         render: { visible: false },
@@ -768,26 +590,25 @@ function createPiece(typeIndex) {
     }, true);
 
     if (!body) {
-        // Fallback to rectangle if vertices fail
-        return Bodies.rectangle(CANVAS_W / 2, DROP_Y, 50, 60, {
-            restitution: RESTITUTION,
-            friction: FRICTION,
-            frictionAir: 0.01,
-            density: 0.002,
-            isStatic: true,
-            render: { visible: false },
+        // Fallback: use bounding box of vertices
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        for (const v of verts) {
+            minX = Math.min(minX, v.x); maxX = Math.max(maxX, v.x);
+            minY = Math.min(minY, v.y); maxY = Math.max(maxY, v.y);
+        }
+        return Bodies.rectangle(CANVAS_W / 2, DROP_Y, maxX - minX, maxY - minY, {
+            restitution: RESTITUTION, friction: FRICTION, frictionAir: 0.02,
+            density: 0.002, isStatic: true, render: { visible: false },
             label: 'piece_' + typeIndex
         });
     }
 
-    // Reset position to drop zone
     Body.setPosition(body, { x: CANVAS_W / 2, y: DROP_Y });
-
     return body;
 }
 
 function spawnNextPiece() {
-    const typeIndex = Math.floor(Math.random() * CHARACTERS.length);
+    const typeIndex = Math.floor(Math.random() * CHARACTER_COUNT);
     currentPieceType = typeIndex;
     currentPiece = createPiece(typeIndex);
     Composite.add(engine.world, currentPiece);
@@ -800,21 +621,22 @@ function spawnNextPiece() {
 // ============================================================
 function moveLeft() {
     if (!currentPiece || waitingForSettle || !gameActive) return;
-    const newX = Math.max(40, currentPiece.position.x - MOVE_STEP);
-    Body.setPosition(currentPiece, { x: newX, y: currentPiece.position.y });
+    Body.setPosition(currentPiece, {
+        x: Math.max(40, currentPiece.position.x - MOVE_STEP),
+        y: currentPiece.position.y
+    });
 }
-
 function moveRight() {
     if (!currentPiece || waitingForSettle || !gameActive) return;
-    const newX = Math.min(CANVAS_W - 40, currentPiece.position.x + MOVE_STEP);
-    Body.setPosition(currentPiece, { x: newX, y: currentPiece.position.y });
+    Body.setPosition(currentPiece, {
+        x: Math.min(CANVAS_W - 40, currentPiece.position.x + MOVE_STEP),
+        y: currentPiece.position.y
+    });
 }
-
 function rotateLeft() {
     if (!currentPiece || waitingForSettle || !gameActive) return;
     Body.rotate(currentPiece, -ROTATION_STEP);
 }
-
 function rotateRight() {
     if (!currentPiece || waitingForSettle || !gameActive) return;
     Body.rotate(currentPiece, ROTATION_STEP);
@@ -822,10 +644,8 @@ function rotateRight() {
 
 function dropPiece() {
     if (!currentPiece || waitingForSettle || !gameActive) return;
-
     stopTurnTimer();
 
-    // Make the piece dynamic (affected by gravity)
     Body.setStatic(currentPiece, false);
     Body.setVelocity(currentPiece, { x: 0, y: 0 });
 
@@ -834,45 +654,34 @@ function dropPiece() {
     const droppedByPlayer = currentPlayer;
 
     piecesOnPlatform.push({ body: droppedBody, type: droppedType, player: droppedByPlayer });
-    lastDroppedByPlayer[droppedBody.id] = droppedByPlayer;
-    allDroppedBodies.push(droppedBody);
     dropCount++;
 
     currentPiece = null;
     waitingForSettle = true;
 
-    // Wait for physics to settle, then move to next turn
     let settleChecks = 0;
-    const maxSettleTime = 4000; // max 4 seconds
-    const checkInterval = 200;
-    const maxChecks = maxSettleTime / checkInterval;
-
+    const maxChecks = 20; // 4 seconds max
     function checkSettle() {
         if (!gameActive) return;
         settleChecks++;
-
-        // Check if all bodies have low velocity (settled)
         let allSettled = true;
         for (const item of piecesOnPlatform) {
             const v = item.body.velocity;
-            const speed = Math.sqrt(v.x * v.x + v.y * v.y);
-            if (speed > 0.3) {
+            if (Math.sqrt(v.x * v.x + v.y * v.y) > 0.3) {
                 allSettled = false;
                 break;
             }
         }
-
         if (allSettled || settleChecks >= maxChecks) {
             if (!gameActive) return;
             waitingForSettle = false;
             switchPlayer();
             spawnNextPiece();
         } else {
-            settleTimeout = setTimeout(checkSettle, checkInterval);
+            settleTimeout = setTimeout(checkSettle, 200);
         }
     }
-
-    settleTimeout = setTimeout(checkSettle, 800); // initial delay before checking
+    settleTimeout = setTimeout(checkSettle, 800);
 }
 
 // ============================================================
@@ -880,15 +689,9 @@ function dropPiece() {
 // ============================================================
 function checkFallen() {
     if (!gameActive) return;
-
     for (let i = piecesOnPlatform.length - 1; i >= 0; i--) {
-        const item = piecesOnPlatform[i];
-        const body = item.body;
-
-        if (body.position.y > FALL_THRESHOLD) {
-            // A piece fell! The player who dropped it loses
-            const losingPlayer = item.player;
-            gameOver(losingPlayer);
+        if (piecesOnPlatform[i].body.position.y > FALL_THRESHOLD) {
+            gameOver(piecesOnPlatform[i].player);
             return;
         }
     }
@@ -901,56 +704,34 @@ function switchPlayer() {
     currentPlayer = currentPlayer === 1 ? 2 : 1;
     updatePlayerUI();
 }
-
 function updatePlayerUI() {
-    const p1 = document.getElementById('player1-info');
-    const p2 = document.getElementById('player2-info');
-    if (currentPlayer === 1) {
-        p1.classList.add('active');
-        p2.classList.remove('active');
-    } else {
-        p1.classList.remove('active');
-        p2.classList.add('active');
-    }
+    document.getElementById('player1-info').classList.toggle('active', currentPlayer === 1);
+    document.getElementById('player2-info').classList.toggle('active', currentPlayer === 2);
 }
-
 function startTurnTimer() {
     turnTimer = TURN_TIME;
     updateTimerDisplay();
     timerInterval = setInterval(() => {
         turnTimer--;
         updateTimerDisplay();
-        if (turnTimer <= 0) {
-            // Auto-drop
-            dropPiece();
-        }
+        if (turnTimer <= 0) dropPiece();
     }, 1000);
 }
-
 function stopTurnTimer() {
-    if (timerInterval) {
-        clearInterval(timerInterval);
-        timerInterval = null;
-    }
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
 }
-
 function updateTimerDisplay() {
-    const timerEl = document.getElementById('timer');
-    timerEl.textContent = turnTimer;
-    if (turnTimer <= 3) {
-        timerEl.classList.add('warning');
-    } else {
-        timerEl.classList.remove('warning');
-    }
+    const el = document.getElementById('timer');
+    el.textContent = turnTimer;
+    el.classList.toggle('warning', turnTimer <= 3);
 }
 
 // ============================================================
 // Game flow
 // ============================================================
 function startGame() {
-    document.getElementById('start-screen').classList.add('hidden');
+    document.getElementById('upload-screen').classList.add('hidden');
     document.getElementById('result-screen').classList.add('hidden');
-
     initGame();
     gameActive = true;
     currentPlayer = 1;
@@ -964,101 +745,66 @@ function gameOver(losingPlayer) {
     if (settleTimeout) clearTimeout(settleTimeout);
     waitingForSettle = false;
 
-    const winningPlayer = losingPlayer === 1 ? 2 : 1;
-
-    if (winningPlayer === 1) {
-        p1Score++;
-    } else {
-        p2Score++;
-    }
+    const winner = losingPlayer === 1 ? 2 : 1;
+    if (winner === 1) p1Score++; else p2Score++;
     document.getElementById('p1-score').textContent = p1Score;
     document.getElementById('p2-score').textContent = p2Score;
 
-    const resultScreen = document.getElementById('result-screen');
-    const resultText = document.getElementById('result-text');
-    const resultSub = document.getElementById('result-sub');
-
-    const winColor = winningPlayer === 1 ? '#ff6b6b' : '#4ecdc4';
-    resultText.innerHTML = `<span style="color:${winColor}">プレイヤー${winningPlayer}</span> の勝ち！`;
-    resultSub.textContent = `${dropCount}体を積み上げた！`;
+    const winColor = winner === 1 ? '#ff6b6b' : '#4ecdc4';
+    document.getElementById('result-text').innerHTML =
+        `<span style="color:${winColor}">プレイヤー${winner}</span> の勝ち！`;
+    document.getElementById('result-sub').textContent = `${dropCount}体を積み上げた！`;
 
     setTimeout(() => {
-        resultScreen.classList.remove('hidden');
+        document.getElementById('result-screen').classList.remove('hidden');
     }, 1000);
 }
 
 // ============================================================
-// Keyboard input
+// Input
 // ============================================================
 document.addEventListener('keydown', (e) => {
     if (!gameActive) return;
     switch (e.key) {
-        case 'ArrowLeft':
-            e.preventDefault();
-            moveLeft();
-            break;
-        case 'ArrowRight':
-            e.preventDefault();
-            moveRight();
-            break;
-        case 'ArrowUp':
-            e.preventDefault();
-            rotateLeft();
-            break;
-        case 'ArrowDown':
-            e.preventDefault();
-            rotateRight();
-            break;
-        case ' ':
-            e.preventDefault();
-            dropPiece();
-            break;
+        case 'ArrowLeft': e.preventDefault(); moveLeft(); break;
+        case 'ArrowRight': e.preventDefault(); moveRight(); break;
+        case 'ArrowUp': e.preventDefault(); rotateLeft(); break;
+        case 'ArrowDown': e.preventDefault(); rotateRight(); break;
+        case ' ': e.preventDefault(); dropPiece(); break;
     }
 });
 
-// Mouse/touch controls on canvas
-const canvas = document.getElementById('game-canvas');
-canvas.addEventListener('click', (e) => {
+const gameCanvas = document.getElementById('game-canvas');
+gameCanvas.addEventListener('click', (e) => {
     if (!gameActive || !currentPiece || waitingForSettle) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-
-    // If clicking below the piece, drop it
+    const rect = gameCanvas.getBoundingClientRect();
     if (e.clientY - rect.top > 100) {
         dropPiece();
     } else {
-        // Move piece to click position
-        const newX = Math.max(40, Math.min(CANVAS_W - 40, x));
-        Body.setPosition(currentPiece, { x: newX, y: currentPiece.position.y });
+        const x = Math.max(40, Math.min(CANVAS_W - 40, e.clientX - rect.left));
+        Body.setPosition(currentPiece, { x, y: currentPiece.position.y });
     }
 });
 
-// Touch/drag support
 let isDragging = false;
-canvas.addEventListener('touchstart', (e) => {
+gameCanvas.addEventListener('touchstart', (e) => {
     if (!gameActive || !currentPiece || waitingForSettle) return;
-    isDragging = true;
-    e.preventDefault();
+    isDragging = true; e.preventDefault();
 });
-
-canvas.addEventListener('touchmove', (e) => {
+gameCanvas.addEventListener('touchmove', (e) => {
     if (!isDragging || !currentPiece || waitingForSettle) return;
     e.preventDefault();
-    const rect = canvas.getBoundingClientRect();
-    const touch = e.touches[0];
-    const x = touch.clientX - rect.left;
-    const newX = Math.max(40, Math.min(CANVAS_W - 40, x));
-    Body.setPosition(currentPiece, { x: newX, y: currentPiece.position.y });
+    const rect = gameCanvas.getBoundingClientRect();
+    const x = Math.max(40, Math.min(CANVAS_W - 40, e.touches[0].clientX - rect.left));
+    Body.setPosition(currentPiece, { x, y: currentPiece.position.y });
 });
-
-canvas.addEventListener('touchend', (e) => {
-    if (isDragging && currentPiece && !waitingForSettle && gameActive) {
-        dropPiece();
-    }
+gameCanvas.addEventListener('touchend', () => {
+    if (isDragging && currentPiece && !waitingForSettle && gameActive) dropPiece();
     isDragging = false;
 });
 
+// Initialize upload UI
+initUploadUI();
 </script>
 </body>
 </html>
