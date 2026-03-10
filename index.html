@@ -34,8 +34,8 @@
         #timer.warning { color: #ff6b6b; animation: pulse 0.5s infinite; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
         #game-canvas {
-            border: 2px solid #333; border-top: none; display: block;
-            background: linear-gradient(180deg, #0f0f23 0%, #1a1a3e 50%, #16213e 100%);
+            border: 2px solid #3ab0d8; border-top: none; display: block;
+            background: #4ec5f1;
         }
         #controls-bar {
             display: flex; align-items: center; justify-content: center; gap: 15px;
@@ -396,7 +396,7 @@ function initGame() {
     // Platform
     const platform = Bodies.rectangle(CANVAS_W / 2, PLATFORM_Y, PLATFORM_W, PLATFORM_H, {
         isStatic: true, restitution: RESTITUTION, friction: FRICTION,
-        render: { fillStyle: '#34495e', strokeStyle: '#2c3e50', lineWidth: 2 },
+        render: { fillStyle: '#27ae60', strokeStyle: '#1ea832', lineWidth: 2 },
         label: 'platform'
     });
 
@@ -420,7 +420,7 @@ function initGame() {
     piecesOnPlatform = [];
     dropCount = 0;
     waitingForSettle = false;
-    drawBackground.stars = null; // reset stars
+    drawBackground.clouds = null; // reset clouds
 }
 
 // ============================================================
@@ -496,42 +496,66 @@ function customDraw() {
 }
 
 function drawBackground(ctx) {
-    if (!drawBackground.stars) {
-        drawBackground.stars = [];
-        for (let i = 0; i < 50; i++) {
-            drawBackground.stars.push({
-                x: Math.random() * CANVAS_W,
-                y: Math.random() * (PLATFORM_Y - 50),
-                r: Math.random() * 1.5 + 0.5,
-                a: Math.random() * 0.5 + 0.2
-            });
-        }
+    // Sky blue gradient background
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, PLATFORM_Y);
+    skyGrad.addColorStop(0, '#4ec5f1');
+    skyGrad.addColorStop(1, '#3ab8e8');
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, CANVAS_W, PLATFORM_Y);
+
+    // Cloud decorations
+    if (!drawBackground.clouds) {
+        drawBackground.clouds = [
+            { x: 650, y: 60, s: 1.0 },
+            { x: 150, y: 100, s: 0.7 },
+            { x: 450, y: 40, s: 0.5 },
+        ];
     }
-    for (const s of drawBackground.stars) {
-        ctx.fillStyle = `rgba(255,255,255,${s.a})`;
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    for (const c of drawBackground.clouds) {
         ctx.beginPath();
-        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.ellipse(c.x, c.y, 40 * c.s, 20 * c.s, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(c.x - 25 * c.s, c.y + 5 * c.s, 25 * c.s, 15 * c.s, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(c.x + 25 * c.s, c.y + 5 * c.s, 30 * c.s, 15 * c.s, 0, 0, Math.PI * 2);
         ctx.fill();
     }
-    ctx.fillStyle = '#0d1117';
+
+    // Green ground below platform
+    ctx.fillStyle = '#2ecc40';
     ctx.fillRect(0, PLATFORM_Y + PLATFORM_H / 2, CANVAS_W, CANVAS_H);
 }
 
 function drawPlatform(ctx) {
     const px = CANVAS_W / 2 - PLATFORM_W / 2;
     const py = PLATFORM_Y - PLATFORM_H / 2;
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.fillRect(px + 5, py + 5, PLATFORM_W, PLATFORM_H);
-    const grad = ctx.createLinearGradient(px, py, px, py + PLATFORM_H);
-    grad.addColorStop(0, '#4a6274');
-    grad.addColorStop(1, '#2c3e50');
-    ctx.fillStyle = grad;
-    ctx.fillRect(px, py, PLATFORM_W, PLATFORM_H);
-    ctx.fillStyle = 'rgba(255,255,255,0.1)';
-    ctx.fillRect(px, py, PLATFORM_W, 3);
-    ctx.fillStyle = '#2c3e50';
-    ctx.fillRect(px + 20, py + PLATFORM_H, 15, 30);
-    ctx.fillRect(px + PLATFORM_W - 35, py + PLATFORM_H, 15, 30);
+    const toothW = 25; // width of each zigzag tooth
+    const toothH = 20; // height of zigzag points
+    const numTeeth = Math.ceil(PLATFORM_W / toothW);
+
+    // Green zigzag grass on top
+    ctx.fillStyle = '#27ae60';
+    ctx.beginPath();
+    ctx.moveTo(px, py + PLATFORM_H);
+    for (let i = 0; i < numTeeth; i++) {
+        const tx = px + i * toothW;
+        ctx.lineTo(tx + toothW / 2, py - toothH); // peak
+        ctx.lineTo(tx + toothW, py + PLATFORM_H / 2); // valley
+    }
+    ctx.lineTo(px + PLATFORM_W, py + PLATFORM_H);
+    ctx.closePath();
+    ctx.fill();
+
+    // Darker green base rectangle below teeth
+    ctx.fillStyle = '#2ecc40';
+    ctx.fillRect(px, py + PLATFORM_H / 2, PLATFORM_W, PLATFORM_H / 2 + 5);
+
+    // Even darker bottom strip
+    ctx.fillStyle = '#1ea832';
+    ctx.fillRect(px, py + PLATFORM_H - 2, PLATFORM_W, 6);
 }
 
 // ============================================================
