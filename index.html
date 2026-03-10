@@ -120,6 +120,14 @@
     <p style="color:#aaa; margin: 5px 0 0 0;">仲間を積み上げろ！落としたら負け！</p>
     <p style="color:#ffd93d; font-size: 14px; margin-top: 15px;">キャラクター画像を5枚アップロードしてください</p>
     <p style="color:#888; font-size: 12px;">（黒背景は自動で透過されます）</p>
+    <div id="bulk-drop-zone" style="
+        border: 2px dashed rgba(255,217,61,0.4); border-radius: 12px;
+        padding: 15px 30px; margin: 10px 0; cursor: pointer;
+        text-align: center; color: #aaa; font-size: 13px;
+        transition: all 0.3s; background: rgba(255,217,61,0.05);
+    ">ここに5枚まとめてドラッグ＆ドロップ、またはクリックで選択
+        <input type="file" accept="image/*" multiple id="bulk-file-input" style="display:none;">
+    </div>
     <div class="upload-grid" id="upload-grid"></div>
     <p style="color:#aaa; font-size: 13px; text-align: center; line-height: 2; margin-bottom: 10px;">
         <b style="color:#ffd93d">操作方法</b><br>
@@ -204,6 +212,7 @@ let piecesOnPlatform = [];
 const CHARACTER_COUNT = 5;
 const characterImages = []; // processed transparent canvas for each character
 const characterContours = []; // polygon vertices for physics
+const characterAreas = []; // opaque pixel count for each character (used for mass)
 const characterNames = ["キャラ1", "キャラ2", "キャラ3", "キャラ4", "キャラ5"];
 let loadedCount = 0;
 
@@ -230,53 +239,7 @@ function initUploadUI() {
 function handleImageUpload(event, index, slot) {
     const file = event.target.files[0];
     if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-            // Process image: remove black background, extract contour
-            const result = processImage(img);
-            characterImages[index] = result.canvas;
-            characterContours[index] = result.vertices;
-
-            // Update UI
-            slot.classList.add('loaded');
-            // Remove plus and label
-            const plus = slot.querySelector('.plus');
-            const label = slot.querySelector('.label');
-            if (plus) plus.style.display = 'none';
-            if (label) label.style.display = 'none';
-
-            // Show preview
-            let preview = slot.querySelector('img');
-            if (!preview) {
-                preview = document.createElement('img');
-                slot.appendChild(preview);
-            }
-            preview.src = result.canvas.toDataURL();
-
-            // Show name input
-            const nameInput = slot.querySelector('.char-name-input');
-            nameInput.style.display = 'block';
-            nameInput.addEventListener('click', (e) => e.stopPropagation());
-            nameInput.addEventListener('input', (e) => {
-                characterNames[index] = e.target.value || `キャラ${index + 1}`;
-            });
-
-            // Check if all loaded
-            loadedCount = characterImages.filter(Boolean).length;
-            const btn = document.getElementById('start-btn');
-            if (loadedCount >= CHARACTER_COUNT) {
-                btn.disabled = false;
-                btn.textContent = 'ゲームスタート';
-            } else {
-                btn.textContent = `あと${CHARACTER_COUNT - loadedCount}枚`;
-            }
-        };
-        img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
+    loadImageFile(file, index, slot);
 }
 
 // Process image: remove black background and extract outline polygon
@@ -300,6 +263,7 @@ function processImage(img) {
     const data = imageData.data;
     const threshold = 35; // pixels darker than this become transparent
 
+    let opaquePixelCount = 0;
     for (let i = 0; i < data.length; i += 4) {
         const r = data[i], g = data[i + 1], b = data[i + 2];
         const brightness = (r + g + b) / 3;
@@ -309,13 +273,17 @@ function processImage(img) {
             // Smooth edge transition
             data[i + 3] = Math.round(((brightness - threshold) / 20) * 255);
         }
+        // Count opaque pixels for area-based mass
+        if (data[i + 3] > 30) {
+            opaquePixelCount++;
+        }
     }
     ctx.putImageData(imageData, 0, 0);
 
     // Extract contour polygon from alpha channel
     const vertices = extractContour(imageData, w, h);
 
-    return { canvas, vertices };
+    return { canvas, vertices, opaqueArea: opaquePixelCount };
 }
 
 // Extract a simplified contour polygon from image alpha
@@ -491,15 +459,17 @@ function customDraw() {
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Name label
+        // Name label with mass indicator
         const name = characterNames[currentPieceType] || `キャラ${currentPieceType + 1}`;
+        const mass = currentPiece._targetMass ? currentPiece._targetMass.toFixed(1) : '?';
+        const label = `${name} (${mass}kg)`;
         ctx.font = 'bold 13px "Hiragino Sans", "Meiryo", sans-serif';
-        const tw = ctx.measureText(name).width;
+        const tw = ctx.measureText(label).width;
         ctx.fillStyle = 'rgba(0,0,0,0.7)';
         ctx.fillRect(currentPiece.position.x - tw / 2 - 8, currentPiece.position.y - 70, tw + 16, 22);
         ctx.fillStyle = currentPlayer === 1 ? '#ff6b6b' : '#4ecdc4';
         ctx.textAlign = 'center';
-        ctx.fillText(name, currentPiece.position.x, currentPiece.position.y - 54);
+        ctx.fillText(label, currentPiece.position.x, currentPiece.position.y - 54);
         ctx.textAlign = 'start';
     }
 
@@ -567,43 +537,49 @@ function drawPlatform(ctx) {
 // ============================================================
 // Piece creation using image contour
 // ============================================================
+function computeMassFromArea(typeIndex) {
+    // mass = (area / normFactor)^2
+    // normFactor chosen so typical piece (~2000-4000 opaque pixels) has reasonable mass
+    const area = characterAreas[typeIndex] || 1000;
+    const normalized = area / 1000; // e.g. 3000px -> 3.0
+    return normalized * normalized * 0.8; // 3^2 * 0.8 = 7.2
+}
+
 function createPiece(typeIndex) {
     const verts = characterContours[typeIndex];
+    let body;
+
     if (!verts || verts.length < 3) {
-        return Bodies.rectangle(CANVAS_W / 2, DROP_Y, 50, 60, {
+        body = Bodies.rectangle(CANVAS_W / 2, DROP_Y, 50, 60, {
             restitution: RESTITUTION, friction: FRICTION, frictionAir: 0.02,
-            density: 0.002, isStatic: true, render: { visible: false },
+            density: 0.001, isStatic: true, render: { visible: false },
             label: 'piece_' + typeIndex
         });
-    }
+    } else {
+        const vertsCopy = verts.map(v => ({ x: v.x, y: v.y }));
+        body = Bodies.fromVertices(CANVAS_W / 2, DROP_Y, vertsCopy, {
+            restitution: RESTITUTION, friction: FRICTION, frictionAir: 0.02,
+            density: 0.001, isStatic: true, render: { visible: false },
+            label: 'piece_' + typeIndex
+        }, true);
 
-    const vertsCopy = verts.map(v => ({ x: v.x, y: v.y }));
-
-    const body = Bodies.fromVertices(CANVAS_W / 2, DROP_Y, vertsCopy, {
-        restitution: RESTITUTION,
-        friction: FRICTION,
-        frictionAir: 0.02,
-        density: 0.002,
-        isStatic: true,
-        render: { visible: false },
-        label: 'piece_' + typeIndex
-    }, true);
-
-    if (!body) {
-        // Fallback: use bounding box of vertices
-        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        for (const v of verts) {
-            minX = Math.min(minX, v.x); maxX = Math.max(maxX, v.x);
-            minY = Math.min(minY, v.y); maxY = Math.max(maxY, v.y);
+        if (!body) {
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            for (const v of verts) {
+                minX = Math.min(minX, v.x); maxX = Math.max(maxX, v.x);
+                minY = Math.min(minY, v.y); maxY = Math.max(maxY, v.y);
+            }
+            body = Bodies.rectangle(CANVAS_W / 2, DROP_Y, maxX - minX, maxY - minY, {
+                restitution: RESTITUTION, friction: FRICTION, frictionAir: 0.02,
+                density: 0.001, isStatic: true, render: { visible: false },
+                label: 'piece_' + typeIndex
+            });
         }
-        return Bodies.rectangle(CANVAS_W / 2, DROP_Y, maxX - minX, maxY - minY, {
-            restitution: RESTITUTION, friction: FRICTION, frictionAir: 0.02,
-            density: 0.002, isStatic: true, render: { visible: false },
-            label: 'piece_' + typeIndex
-        });
     }
 
     Body.setPosition(body, { x: CANVAS_W / 2, y: DROP_Y });
+    // Store target mass (applied when piece becomes dynamic on drop)
+    body._targetMass = computeMassFromArea(typeIndex);
     return body;
 }
 
@@ -648,6 +624,11 @@ function dropPiece() {
 
     Body.setStatic(currentPiece, false);
     Body.setVelocity(currentPiece, { x: 0, y: 0 });
+
+    // Apply area²-based mass
+    if (currentPiece._targetMass) {
+        Body.setMass(currentPiece, currentPiece._targetMass);
+    }
 
     const droppedBody = currentPiece;
     const droppedType = currentPieceType;
@@ -803,8 +784,97 @@ gameCanvas.addEventListener('touchend', () => {
     isDragging = false;
 });
 
+// Bulk drag & drop / file select
+function setupBulkUpload() {
+    const dropZone = document.getElementById('bulk-drop-zone');
+    const bulkInput = document.getElementById('bulk-file-input');
+
+    dropZone.addEventListener('click', () => bulkInput.click());
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = '#ffd93d';
+        dropZone.style.background = 'rgba(255,217,61,0.15)';
+    });
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.style.borderColor = 'rgba(255,217,61,0.4)';
+        dropZone.style.background = 'rgba(255,217,61,0.05)';
+    });
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = 'rgba(255,217,61,0.4)';
+        dropZone.style.background = 'rgba(255,217,61,0.05)';
+        handleBulkFiles(e.dataTransfer.files);
+    });
+    bulkInput.addEventListener('change', (e) => handleBulkFiles(e.target.files));
+}
+
+function handleBulkFiles(files) {
+    const slots = document.querySelectorAll('.upload-slot');
+    let slotIdx = 0;
+    // Find next empty slot
+    for (let i = 0; i < files.length && slotIdx < CHARACTER_COUNT; i++) {
+        // Skip to next empty slot
+        while (slotIdx < CHARACTER_COUNT && characterImages[slotIdx]) slotIdx++;
+        if (slotIdx >= CHARACTER_COUNT) break;
+
+        const file = files[i];
+        if (!file.type.startsWith('image/')) continue;
+
+        // Simulate upload on this slot
+        const idx = slotIdx;
+        const slot = slots[idx];
+        loadImageFile(file, idx, slot);
+        slotIdx++;
+    }
+}
+
+function loadImageFile(file, index, slot) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+            const result = processImage(img);
+            characterImages[index] = result.canvas;
+            characterContours[index] = result.vertices;
+            characterAreas[index] = result.opaqueArea;
+
+            slot.classList.add('loaded');
+            const plus = slot.querySelector('.plus');
+            const label = slot.querySelector('.label');
+            if (plus) plus.style.display = 'none';
+            if (label) label.style.display = 'none';
+
+            let preview = slot.querySelector('img');
+            if (!preview) {
+                preview = document.createElement('img');
+                slot.appendChild(preview);
+            }
+            preview.src = result.canvas.toDataURL();
+
+            const nameInput = slot.querySelector('.char-name-input');
+            nameInput.style.display = 'block';
+            nameInput.addEventListener('click', (ev) => ev.stopPropagation());
+            nameInput.addEventListener('input', (ev) => {
+                characterNames[index] = ev.target.value || `キャラ${index + 1}`;
+            });
+
+            loadedCount = characterImages.filter(Boolean).length;
+            const btn = document.getElementById('start-btn');
+            if (loadedCount >= CHARACTER_COUNT) {
+                btn.disabled = false;
+                btn.textContent = 'ゲームスタート';
+            } else {
+                btn.textContent = `あと${CHARACTER_COUNT - loadedCount}枚`;
+            }
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
 // Initialize upload UI
 initUploadUI();
+setupBulkUpload();
 </script>
 </body>
 </html>
