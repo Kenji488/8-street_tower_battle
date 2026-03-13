@@ -2,90 +2,112 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>8番街タワーバトル</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/decomp.js/0.3.0/decomp.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; overflow: hidden; }
         body {
             background: #1a1a2e;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            min-height: 100vh;
+            min-height: 100vh; min-height: 100dvh;
             font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
             overflow: hidden; color: #fff;
+            touch-action: none;
+            -webkit-user-select: none; user-select: none;
+        }
+        #game-container {
+            display: flex; flex-direction: column; align-items: center;
+            width: 100%; max-width: 800px;
         }
         #game-header {
             display: flex; align-items: center; justify-content: space-between;
-            width: 800px; padding: 10px 20px;
+            width: 100%; max-width: 800px; padding: 8px 12px;
             background: rgba(0,0,0,0.3); border-radius: 12px 12px 0 0;
         }
         .player-info {
-            display: flex; align-items: center; gap: 10px;
-            font-size: 18px; font-weight: bold; padding: 8px 16px;
+            display: flex; align-items: center; gap: 6px;
+            font-size: 16px; font-weight: bold; padding: 6px 10px;
             border-radius: 8px; transition: all 0.3s;
         }
-        .player-info.active { transform: scale(1.1); }
+        .player-info.active { transform: scale(1.05); }
         #player1-info { color: #ff6b6b; }
         #player1-info.active { background: rgba(255,107,107,0.2); box-shadow: 0 0 15px rgba(255,107,107,0.3); }
         #player2-info { color: #4ecdc4; }
         #player2-info.active { background: rgba(78,205,196,0.2); box-shadow: 0 0 15px rgba(78,205,196,0.3); }
-        #timer { font-size: 32px; font-weight: bold; color: #ffd93d; min-width: 60px; text-align: center; }
+        #timer { font-size: 28px; font-weight: bold; color: #ffd93d; min-width: 50px; text-align: center; }
         #timer.warning { color: #ff6b6b; animation: pulse 0.5s infinite; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
         #game-canvas {
             border: 2px solid #3ab0d8; border-top: none; display: block;
             background: #4ec5f1;
+            width: 100%; max-width: 800px; height: auto;
+            touch-action: none;
         }
         #controls-bar {
-            display: flex; align-items: center; justify-content: center; gap: 15px;
-            width: 800px; padding: 12px 20px;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            width: 100%; max-width: 800px; padding: 10px 8px;
             background: rgba(0,0,0,0.3); border-radius: 0 0 12px 12px;
+            flex-wrap: wrap;
         }
         .ctrl-btn {
             background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2);
-            color: #fff; padding: 8px 20px; border-radius: 8px; font-size: 16px;
+            color: #fff; padding: 12px 16px; border-radius: 10px; font-size: 18px;
             cursor: pointer; transition: all 0.2s; font-family: inherit;
+            min-width: 60px; text-align: center;
+            -webkit-tap-highlight-color: transparent;
         }
         .ctrl-btn:hover { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.4); }
-        .ctrl-btn:active { transform: scale(0.95); }
+        .ctrl-btn:active { transform: scale(0.92); background: rgba(255,255,255,0.25); }
         #drop-btn {
             background: rgba(255,217,61,0.2); border-color: #ffd93d; color: #ffd93d;
-            font-size: 18px; font-weight: bold; padding: 8px 30px;
+            font-size: 20px; font-weight: bold; padding: 12px 28px;
+            flex-grow: 1; max-width: 200px;
         }
-        .key-hint { font-size: 11px; opacity: 0.5; display: block; }
+        .key-hint { font-size: 10px; opacity: 0.5; display: block; }
+        @media (max-width: 500px) {
+            .key-hint { display: none; }
+            .ctrl-btn { padding: 14px 10px; font-size: 16px; min-width: 50px; flex: 1; }
+            #drop-btn { padding: 14px 10px; font-size: 18px; flex: 2; max-width: none; }
+            #controls-bar { gap: 6px; padding: 8px 6px; }
+            .player-info { font-size: 14px; padding: 4px 8px; }
+            #timer { font-size: 24px; }
+        }
 
         /* Overlay screens */
         .overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.9);
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 100;
+            z-index: 100; padding: 20px; overflow-y: auto;
         }
         .overlay h1 {
-            font-size: 48px; margin-bottom: 10px;
+            font-size: clamp(28px, 7vw, 48px); margin-bottom: 10px;
             background: linear-gradient(135deg, #ff6b6b, #ffd93d, #4ecdc4);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
         .start-btn {
             background: linear-gradient(135deg, #ff6b6b, #ee5a24); border: none;
             color: #fff; padding: 15px 50px; border-radius: 30px;
-            font-size: 22px; font-weight: bold; cursor: pointer;
+            font-size: 20px; font-weight: bold; cursor: pointer;
             transition: transform 0.2s; font-family: inherit;
+            -webkit-tap-highlight-color: transparent;
         }
         .start-btn:hover { transform: scale(1.05); }
         .start-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
         .hidden { display: none !important; }
 
         /* Image upload UI */
-        #upload-screen { gap: 20px; }
+        #upload-screen { gap: 15px; }
         #upload-screen h1 { margin-bottom: 0; }
         .upload-grid {
-            display: flex; gap: 15px; flex-wrap: wrap; justify-content: center;
-            margin: 20px 0; max-width: 700px;
+            display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+            margin: 10px 0; max-width: 700px; padding: 0 10px;
         }
         .upload-slot {
-            width: 120px; height: 150px; border: 2px dashed rgba(255,255,255,0.3);
+            width: 100px; height: 130px; border: 2px dashed rgba(255,255,255,0.3);
             border-radius: 12px; display: flex; flex-direction: column;
             align-items: center; justify-content: center; cursor: pointer;
             transition: all 0.3s; overflow: hidden; position: relative;
@@ -98,10 +120,10 @@
             position: absolute; top: 0; left: 0;
         }
         .upload-slot .label {
-            font-size: 12px; color: #aaa; z-index: 1;
+            font-size: 11px; color: #aaa; z-index: 1;
         }
         .upload-slot .plus {
-            font-size: 32px; color: rgba(255,255,255,0.3);
+            font-size: 28px; color: rgba(255,255,255,0.3);
         }
         .upload-slot input { display: none; }
         .char-name-input {
@@ -109,6 +131,11 @@
             color: #fff; text-align: center; width: 100%; padding: 2px;
             font-size: 11px; position: absolute; bottom: 0; z-index: 2;
             font-family: inherit;
+        }
+        @media (max-width: 500px) {
+            .upload-slot { width: 80px; height: 105px; }
+            .overlay { padding: 15px 10px; }
+            #bulk-drop-zone { font-size: 12px !important; padding: 10px 15px !important; }
         }
     </style>
 </head>
@@ -131,8 +158,8 @@
     <div class="upload-grid" id="upload-grid"></div>
     <p style="color:#aaa; font-size: 13px; text-align: center; line-height: 2; margin-bottom: 10px;">
         <b style="color:#ffd93d">操作方法</b><br>
-        ← → : 移動　　↑ ↓ : 回転<br>
-        スペース / クリック : 落とす
+        <span style="font-size:12px;">スマホ: 画面をタッチで移動 / ボタンで回転・落とす</span><br>
+        <span style="font-size:12px;">PC: ← → 移動　↑ ↓ 回転　スペース 落とす</span>
     </p>
     <button class="start-btn" id="start-btn" disabled onclick="startGame()">
         画像をアップロードしてね
@@ -147,22 +174,24 @@
 </div>
 
 <!-- Game UI -->
-<div id="game-header">
-    <div id="player1-info" class="player-info active">
-        <span>P1</span> <span id="p1-score">0</span>勝
+<div id="game-container">
+    <div id="game-header">
+        <div id="player1-info" class="player-info active">
+            <span>P1</span> <span id="p1-score">0</span>勝
+        </div>
+        <div id="timer">10</div>
+        <div id="player2-info" class="player-info">
+            <span>P2</span> <span id="p2-score">0</span>勝
+        </div>
     </div>
-    <div id="timer">10</div>
-    <div id="player2-info" class="player-info">
-        <span>P2</span> <span id="p2-score">0</span>勝
+    <canvas id="game-canvas" width="800" height="600"></canvas>
+    <div id="controls-bar">
+        <button class="ctrl-btn" onclick="rotateLeft()">↶ 回転<span class="key-hint">↑キー</span></button>
+        <button class="ctrl-btn" onclick="moveLeft()">← 左<span class="key-hint">←キー</span></button>
+        <button class="ctrl-btn" id="drop-btn" onclick="dropPiece()">落とす！<span class="key-hint">スペース</span></button>
+        <button class="ctrl-btn" onclick="moveRight()">右 →<span class="key-hint">→キー</span></button>
+        <button class="ctrl-btn" onclick="rotateRight()">回転 ↷<span class="key-hint">↓キー</span></button>
     </div>
-</div>
-<canvas id="game-canvas" width="800" height="600"></canvas>
-<div id="controls-bar">
-    <button class="ctrl-btn" onclick="rotateLeft()">↶ 回転<span class="key-hint">↑キー</span></button>
-    <button class="ctrl-btn" onclick="moveLeft()">← 左<span class="key-hint">←キー</span></button>
-    <button class="ctrl-btn" id="drop-btn" onclick="dropPiece()">落とす！<span class="key-hint">スペース</span></button>
-    <button class="ctrl-btn" onclick="moveRight()">右 →<span class="key-hint">→キー</span></button>
-    <button class="ctrl-btn" onclick="rotateRight()">回転 ↷<span class="key-hint">↓キー</span></button>
 </div>
 
 <script>
@@ -780,32 +809,47 @@ document.addEventListener('keydown', (e) => {
 });
 
 const gameCanvas = document.getElementById('game-canvas');
+
+// Convert screen coordinates to canvas coordinates (for responsive scaling)
+function screenToCanvas(clientX, clientY) {
+    const rect = gameCanvas.getBoundingClientRect();
+    const scaleX = CANVAS_W / rect.width;
+    const scaleY = CANVAS_H / rect.height;
+    return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
+    };
+}
+
+// Mouse click: move piece to clicked X position (no auto-drop)
 gameCanvas.addEventListener('click', (e) => {
     if (!gameActive || !currentPiece || waitingForSettle) return;
-    const rect = gameCanvas.getBoundingClientRect();
-    if (e.clientY - rect.top > 100) {
-        dropPiece();
-    } else {
-        const x = Math.max(40, Math.min(CANVAS_W - 40, e.clientX - rect.left));
-        Body.setPosition(currentPiece, { x, y: currentPiece.position.y });
-    }
-});
-
-let isDragging = false;
-gameCanvas.addEventListener('touchstart', (e) => {
-    if (!gameActive || !currentPiece || waitingForSettle) return;
-    isDragging = true; e.preventDefault();
-});
-gameCanvas.addEventListener('touchmove', (e) => {
-    if (!isDragging || !currentPiece || waitingForSettle) return;
-    e.preventDefault();
-    const rect = gameCanvas.getBoundingClientRect();
-    const x = Math.max(40, Math.min(CANVAS_W - 40, e.touches[0].clientX - rect.left));
+    const pos = screenToCanvas(e.clientX, e.clientY);
+    const x = Math.max(40, Math.min(CANVAS_W - 40, pos.x));
     Body.setPosition(currentPiece, { x, y: currentPiece.position.y });
 });
-gameCanvas.addEventListener('touchend', () => {
-    if (isDragging && currentPiece && !waitingForSettle && gameActive) dropPiece();
-    isDragging = false;
+
+// Touch: drag to position piece, NO auto-drop on release (use drop button)
+let isTouchDragging = false;
+gameCanvas.addEventListener('touchstart', (e) => {
+    if (!gameActive || !currentPiece || waitingForSettle) return;
+    e.preventDefault();
+    isTouchDragging = true;
+    const pos = screenToCanvas(e.touches[0].clientX, e.touches[0].clientY);
+    const x = Math.max(40, Math.min(CANVAS_W - 40, pos.x));
+    Body.setPosition(currentPiece, { x, y: currentPiece.position.y });
+});
+gameCanvas.addEventListener('touchmove', (e) => {
+    if (!isTouchDragging || !currentPiece || waitingForSettle) return;
+    e.preventDefault();
+    const pos = screenToCanvas(e.touches[0].clientX, e.touches[0].clientY);
+    const x = Math.max(40, Math.min(CANVAS_W - 40, pos.x));
+    Body.setPosition(currentPiece, { x, y: currentPiece.position.y });
+});
+gameCanvas.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    isTouchDragging = false;
+    // No auto-drop: user must tap the drop button
 });
 
 // Bulk drag & drop / file select
